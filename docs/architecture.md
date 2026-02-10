@@ -11,3 +11,8 @@
 - `infrastructure/`: sqlite repositories, external clients (ECB), CSV parsers
 - `interfaces/http/`: handlers, DTO mapping, middleware
 - `platform/`: config, logging, clock, tx manager
+
+## Dependency rule
+- `interfaces` -> `application` -> `domain`
+- `infrastructure` implements `application` ports
+- `domain` does not depend on outer layers

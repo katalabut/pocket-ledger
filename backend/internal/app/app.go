@@ -1,36 +1,27 @@
 package app
 
 import (
-	"context"
+	"fmt"
 
 	fastapp "github.com/katalabut/fast-app"
-	"github.com/katalabut/fast-app/config"
 	"github.com/katalabut/fast-app/configloader"
+	"github.com/katalabut/pocket-ledger/backend/internal/platform/appconfig"
+	"github.com/katalabut/pocket-ledger/backend/internal/platform/sqlite"
 )
 
-type AppConfig struct {
-	App config.App
-}
-
-type APIService struct{}
-
-func (s *APIService) Run(ctx context.Context) error {
-	<-ctx.Done()
-	return nil
-}
-
-func (s *APIService) Shutdown(ctx context.Context) error {
-	return nil
-}
-
 func New() (*fastapp.App, error) {
-	cfg, err := configloader.New[AppConfig]()
+	cfg, err := configloader.New[appconfig.Config]()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("load config: %w", err)
+	}
+
+	sqliteSvc, err := sqlite.New(cfg.Database.Path)
+	if err != nil {
+		return nil, fmt.Errorf("init sqlite: %w", err)
 	}
 
 	a := fastapp.New(cfg.App).
-		Add(&APIService{})
+		Add(sqliteSvc)
 
 	return a, nil
 }

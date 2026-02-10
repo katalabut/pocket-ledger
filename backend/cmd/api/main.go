@@ -1,35 +1,23 @@
 package main
 
 import (
-	"context"
+	"log"
 
-	fastapp "github.com/katalabut/fast-app"
-	"github.com/katalabut/fast-app/config"
-	"github.com/katalabut/fast-app/configloader"
+	"github.com/katalabut/pocket-ledger/backend/internal/app"
 )
 
-type AppConfig struct {
-	App config.App
-}
-
-type APIService struct{}
-
-func (s *APIService) Run(ctx context.Context) error {
-	<-ctx.Done()
-	return nil
-}
-
-func (s *APIService) Shutdown(ctx context.Context) error {
-	return nil
-}
-
 func main() {
-	cfg, err := configloader.New[AppConfig]()
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run() error {
+	a, err := app.New()
 	if err != nil {
-		panic(err)
+		return err
 	}
 
-	fastapp.New(cfg.App).
-		Add(&APIService{}).
-		Start()
+	a.Start()
+	return nil
 }

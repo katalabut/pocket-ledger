@@ -10,5 +10,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Placeholder
-        run: echo "CI scaffold: jobs will be expanded in next PRs"
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+
+      - name: Validate backend scaffold builds
+        working-directory: backend
+        run: |
+          go mod download
+          go build ./...
+
+      - name: Frontend scaffold check
+        run: echo "frontend scaffold check"

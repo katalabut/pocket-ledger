@@ -1,0 +1,10 @@
+{
+  "name": "pocket-ledger-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "echo frontend scaffold",
+    "build": "echo frontend build scaffold",
+    "test": "echo frontend test scaffold"
+  }
+}

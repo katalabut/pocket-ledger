@@ -3,6 +3,7 @@ module github.com/katalabut/pocket-ledger/backend
 go 1.24
 
 require (
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/katalabut/fast-app v0.2.1
 	modernc.org/sqlite v1.36.0
 )
@@ -13,7 +14,7 @@ require (
 	github.com/creasty/defaults v1.8.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
+	github.com/google/uuid v1.6.0
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect

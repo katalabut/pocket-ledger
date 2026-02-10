@@ -1,0 +1,20 @@
+version: '3.9'
+
+services:
+  backend:
+    image: golang:1.23
+    working_dir: /app
+    volumes:
+      - ./:/app
+      - sqlite-data:/data
+    command: ["bash", "-lc", "echo backend scaffold"]
+
+  frontend:
+    image: node:22
+    working_dir: /app/frontend
+    volumes:
+      - ./:/app
+    command: ["bash", "-lc", "echo frontend scaffold"]
+
+volumes:
+  sqlite-data:

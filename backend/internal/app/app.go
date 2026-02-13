@@ -7,6 +7,7 @@ import (
 	fastapp "github.com/katalabut/fast-app"
 	"github.com/katalabut/fast-app/configloader"
 	"github.com/katalabut/pocket-ledger/backend/internal/application/auth"
+	"github.com/katalabut/pocket-ledger/backend/internal/application/importer"
 	"github.com/katalabut/pocket-ledger/backend/internal/application/ledger"
 	"github.com/katalabut/pocket-ledger/backend/internal/infrastructure/email"
 	"github.com/katalabut/pocket-ledger/backend/internal/infrastructure/sqliterepo"
@@ -53,7 +54,11 @@ func New() (*fastapp.App, error) {
 	splitRepo := sqliterepo.NewSplitRepo(sqliteSvc.DB())
 	ledgerSvc := ledger.NewService(accountRepo, categoryRepo, transactionRepo, splitRepo, nil)
 
-	api := httpapi.New(authSvc, ledgerSvc, httpapi.Config{JWTSecret: cfg.Auth.JWTSecret, Issuer: cfg.Auth.Issuer})
+	importProfileRepo := sqliterepo.NewImportProfileRepo(sqliteSvc.DB())
+	importRepo := sqliterepo.NewImportRepo(sqliteSvc.DB())
+	importSvc := importer.NewService(importProfileRepo, importRepo, transactionRepo, nil)
+
+	api := httpapi.New(authSvc, ledgerSvc, importSvc, httpapi.Config{JWTSecret: cfg.Auth.JWTSecret, Issuer: cfg.Auth.Issuer})
 	httpSrv := httpserver.New(cfg.HTTP.Addr, api.Handler())
 
 	a := fastapp.New(cfg.App).

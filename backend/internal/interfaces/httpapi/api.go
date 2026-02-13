@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/katalabut/pocket-ledger/backend/internal/application/auth"
+	"github.com/katalabut/pocket-ledger/backend/internal/application/importer"
 	"github.com/katalabut/pocket-ledger/backend/internal/application/ledger"
 	"github.com/katalabut/pocket-ledger/backend/internal/domain"
 	"github.com/katalabut/pocket-ledger/backend/internal/interfaces/httpauth"
@@ -16,6 +17,7 @@ import (
 type API struct {
 	authSvc   *auth.Service
 	ledgerSvc *ledger.Service
+	importSvc *importer.Service
 	secret    string
 	issuer    string
 }
@@ -25,8 +27,8 @@ type Config struct {
 	Issuer    string
 }
 
-func New(authSvc *auth.Service, ledgerSvc *ledger.Service, cfg Config) *API {
-	return &API{authSvc: authSvc, ledgerSvc: ledgerSvc, secret: cfg.JWTSecret, issuer: cfg.Issuer}
+func New(authSvc *auth.Service, ledgerSvc *ledger.Service, importSvc *importer.Service, cfg Config) *API {
+	return &API{authSvc: authSvc, ledgerSvc: ledgerSvc, importSvc: importSvc, secret: cfg.JWTSecret, issuer: cfg.Issuer}
 }
 
 func (a *API) Handler() http.Handler {
@@ -58,6 +60,11 @@ func (a *API) Handler() http.Handler {
 	// Transactions
 	protected.HandleFunc("/api/transactions", a.handleTransactions)
 	protected.HandleFunc("/api/transactions/", a.handleTransactionByID)
+
+	// Import profiles + sessions
+	protected.HandleFunc("/api/import-profiles", a.handleImportProfiles)
+	protected.HandleFunc("/api/imports/upload", a.handleImportUpload)
+	protected.HandleFunc("/api/imports/", a.handleImportByID)
 
 	mux.Handle("/api/", httpauth.Middleware(a.secret, a.issuer, protected))
 	return corsMiddleware(mux)

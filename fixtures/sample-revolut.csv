@@ -1,0 +1,11 @@
+date,amount,currency,description,external_id
+2025-01-02,-45.50,EUR,Supermarket Albert,rev-001
+2025-01-03,-3.20,EUR,Coffee & Co,rev-002
+2025-01-05,-120.00,EUR,Electric bill,rev-003
+2025-01-07,2500.00,EUR,Salary January,rev-004
+2025-01-10,-67.80,EUR,Pharmacy,rev-005
+2025-01-12,-22.00,EUR,Netflix subscription,rev-006
+2025-01-15,-89.90,EUR,Restaurant dinner,rev-007
+2025-01-18,-15.00,EUR,Public transport,rev-008
+2025-01-20,-350.00,EUR,Rent contribution,rev-009
+2025-01-25,-42.30,EUR,Groceries Lidl,rev-010

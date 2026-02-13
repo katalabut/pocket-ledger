@@ -1,22 +1,32 @@
-.PHONY: setup dev test lint fmt migrate-up migrate-down
+.PHONY: setup dev test lint fmt build backend-build frontend-build docker-up docker-down
 
 setup:
-	@echo "setup scaffold"
+	cd backend && go mod download
+	cd frontend && npm ci
 
 dev:
-	@echo "dev scaffold"
+	@echo "Start backend: cd backend && go run ./cmd/api"
+	@echo "Start frontend: cd frontend && npm run dev"
 
 test:
-	@echo "test scaffold"
+	cd backend && go test ./... -v
 
 lint:
-	@echo "lint scaffold"
+	cd backend && go vet ./...
 
 fmt:
-	@echo "fmt scaffold"
+	cd backend && gofmt -w .
 
-migrate-up:
-	@echo "migrate-up scaffold"
+backend-build:
+	cd backend && go build -o bin/pocket-ledger ./cmd/api
 
-migrate-down:
-	@echo "migrate-down scaffold"
+frontend-build:
+	cd frontend && npm run build
+
+build: backend-build frontend-build
+
+docker-up:
+	docker compose up --build -d
+
+docker-down:
+	docker compose down

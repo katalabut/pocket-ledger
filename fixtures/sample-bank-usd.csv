@@ -1,0 +1,6 @@
+Date;Amount;Currency;Merchant;Reference
+01/15/2025;-25.99;USD;Amazon.com;AMZ-123456
+01/16/2025;-8.50;USD;Starbucks;SBX-789012
+01/18/2025;-150.00;USD;Whole Foods;WF-345678
+01/20/2025;3200.00;USD;Direct Deposit;DD-901234
+01/22/2025;-45.00;USD;Gas Station;GS-567890

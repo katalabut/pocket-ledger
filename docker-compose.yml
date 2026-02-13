@@ -2,19 +2,37 @@ version: '3.9'
 
 services:
   backend:
-    image: golang:1.23
-    working_dir: /app
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
     volumes:
-      - ./:/app
       - sqlite-data:/data
-    command: ["bash", "-lc", "echo backend scaffold"]
+    environment:
+      - APP_NAME=pocket-ledger
+      - APP_ENVIRONMENT=production
+      - HTTP_ADDR=:8080
+      - DB_PATH=/data/pocket-ledger.db
+      - AUTH_JWT_SECRET=${AUTH_JWT_SECRET:-change-me-in-production}
+      - AUTH_ISSUER=pocket-ledger
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_FROM=${SMTP_FROM:-}
+      - FX_BASE_CURRENCY=${FX_BASE_CURRENCY:-EUR}
+    restart: unless-stopped
 
   frontend:
-    image: node:22
-    working_dir: /app/frontend
-    volumes:
-      - ./:/app
-    command: ["bash", "-lc", "echo frontend scaffold"]
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
 
 volumes:
   sqlite-data:

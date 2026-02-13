@@ -130,6 +130,9 @@ func (r *memFXRepo) GetLatestRateBefore(_ context.Context, date, base, quote str
 func (r *memFXRepo) ListRatesByDate(_ context.Context, date string) ([]domain.FXRate, error) {
 	return nil, nil
 }
+func (r *memFXRepo) ListLatestRatesBefore(_ context.Context, date string) ([]domain.FXRate, error) {
+	return nil, nil
+}
 
 type memECB struct{}
 

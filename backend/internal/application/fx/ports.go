@@ -11,6 +11,7 @@ type FXRateRepository interface {
 	GetRate(ctx context.Context, date, base, quote string) (*domain.FXRate, error)
 	GetLatestRateBefore(ctx context.Context, date, base, quote string) (*domain.FXRate, error)
 	ListRatesByDate(ctx context.Context, date string) ([]domain.FXRate, error)
+	ListLatestRatesBefore(ctx context.Context, date string) ([]domain.FXRate, error)
 }
 
 type ECBClient interface {

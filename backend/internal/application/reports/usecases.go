@@ -2,6 +2,7 @@ package reports
 
 import (
 	"context"
+	"time"
 
 	"github.com/katalabut/pocket-ledger/backend/internal/application/fx"
 	"github.com/katalabut/pocket-ledger/backend/internal/application/ledger"
@@ -109,7 +110,7 @@ func (s *Service) AccountBalances(ctx context.Context) ([]AccountBalanceRow, err
 		return nil, err
 	}
 
-	today := "9999-12-31" // get all transactions
+	today := time.Now().UTC().Format("2006-01-02")
 	var result []AccountBalanceRow
 	for _, acc := range accounts {
 		f := ledger.TransactionFilter{

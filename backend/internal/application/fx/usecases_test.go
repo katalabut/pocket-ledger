@@ -57,6 +57,25 @@ func (r *memFXRepo) ListRatesByDate(_ context.Context, date string) ([]domain.FX
 	return out, nil
 }
 
+func (r *memFXRepo) ListLatestRatesBefore(_ context.Context, date string) ([]domain.FXRate, error) {
+	bestDate := ""
+	for _, rate := range r.rates {
+		if rate.Date < date && rate.Date > bestDate {
+			bestDate = rate.Date
+		}
+	}
+	if bestDate == "" {
+		return nil, nil
+	}
+	var out []domain.FXRate
+	for _, rate := range r.rates {
+		if rate.Date == bestDate {
+			out = append(out, rate)
+		}
+	}
+	return out, nil
+}
+
 type memECB struct {
 	rates []domain.FXRate
 }

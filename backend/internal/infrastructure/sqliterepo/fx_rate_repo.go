@@ -60,6 +60,28 @@ func (r *FXRateRepo) GetLatestRateBefore(ctx context.Context, date, base, quote 
 	return &rate, nil
 }
 
+func (r *FXRateRepo) ListLatestRatesBefore(ctx context.Context, date string) ([]domain.FXRate, error) {
+	// Get rates from the most recent date before the given date
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT id, date, base, quote, rate, created_at FROM fx_rates
+		 WHERE date = (SELECT MAX(date) FROM fx_rates WHERE date < ?)`, date)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []domain.FXRate
+	for rows.Next() {
+		var rate domain.FXRate
+		var createdAt string
+		if err := rows.Scan(&rate.ID, &rate.Date, &rate.Base, &rate.Quote, &rate.Rate, &createdAt); err != nil {
+			return nil, err
+		}
+		rate.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAt)
+		out = append(out, rate)
+	}
+	return out, rows.Err()
+}
+
 func (r *FXRateRepo) ListRatesByDate(ctx context.Context, date string) ([]domain.FXRate, error) {
 	rows, err := r.db.QueryContext(ctx,
 		`SELECT id, date, base, quote, rate, created_at FROM fx_rates WHERE date=?`, date)

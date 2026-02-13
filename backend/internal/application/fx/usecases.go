@@ -44,7 +44,7 @@ func (s *Service) SyncRates(ctx context.Context) (int, error) {
 	return count, nil
 }
 
-// GetRatesForDate returns all rates for a date, with fallback to last available.
+// GetRatesForDate returns all rates for a date, with fallback to last available prior date.
 func (s *Service) GetRatesForDate(ctx context.Context, date string) (map[string]float64, error) {
 	rates, err := s.rates.ListRatesByDate(ctx, date)
 	if err != nil {
@@ -57,8 +57,18 @@ func (s *Service) GetRatesForDate(ctx context.Context, date string) (map[string]
 		}
 		return out, nil
 	}
-	// Fallback: try to find rates from the most recent prior date
-	// We check common currencies
+	// Fallback: find rates from the most recent prior date
+	fallback, err := s.rates.ListLatestRatesBefore(ctx, date)
+	if err != nil {
+		return nil, err
+	}
+	if len(fallback) > 0 {
+		out := map[string]float64{}
+		for _, r := range fallback {
+			out[r.Quote] = r.Rate
+		}
+		return out, nil
+	}
 	return nil, nil
 }
 

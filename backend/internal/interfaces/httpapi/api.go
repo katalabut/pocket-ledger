@@ -7,19 +7,26 @@ import (
 	"strconv"
 	"strings"
 
+	"time"
+
 	"github.com/katalabut/pocket-ledger/backend/internal/application/auth"
+	"github.com/katalabut/pocket-ledger/backend/internal/application/fx"
 	"github.com/katalabut/pocket-ledger/backend/internal/application/importer"
 	"github.com/katalabut/pocket-ledger/backend/internal/application/ledger"
+	"github.com/katalabut/pocket-ledger/backend/internal/application/reports"
 	"github.com/katalabut/pocket-ledger/backend/internal/domain"
 	"github.com/katalabut/pocket-ledger/backend/internal/interfaces/httpauth"
 )
 
 type API struct {
-	authSvc   *auth.Service
-	ledgerSvc *ledger.Service
-	importSvc *importer.Service
-	secret    string
-	issuer    string
+	authSvc    *auth.Service
+	ledgerSvc  *ledger.Service
+	importSvc  *importer.Service
+	fxSvc      *fx.Service
+	reportsSvc *reports.Service
+	secret     string
+	issuer     string
+	clock      func() time.Time
 }
 
 type Config struct {
@@ -27,8 +34,13 @@ type Config struct {
 	Issuer    string
 }
 
-func New(authSvc *auth.Service, ledgerSvc *ledger.Service, importSvc *importer.Service, cfg Config) *API {
-	return &API{authSvc: authSvc, ledgerSvc: ledgerSvc, importSvc: importSvc, secret: cfg.JWTSecret, issuer: cfg.Issuer}
+func New(authSvc *auth.Service, ledgerSvc *ledger.Service, importSvc *importer.Service, fxSvc *fx.Service, reportsSvc *reports.Service, cfg Config) *API {
+	return &API{
+		authSvc: authSvc, ledgerSvc: ledgerSvc, importSvc: importSvc,
+		fxSvc: fxSvc, reportsSvc: reportsSvc,
+		secret: cfg.JWTSecret, issuer: cfg.Issuer,
+		clock: func() time.Time { return time.Now().UTC() },
+	}
 }
 
 func (a *API) Handler() http.Handler {
@@ -65,6 +77,14 @@ func (a *API) Handler() http.Handler {
 	protected.HandleFunc("/api/import-profiles", a.handleImportProfiles)
 	protected.HandleFunc("/api/imports/upload", a.handleImportUpload)
 	protected.HandleFunc("/api/imports/", a.handleImportByID)
+
+	// FX
+	protected.HandleFunc("/api/fx/rates", a.handleFXRates)
+	protected.HandleFunc("/api/fx/sync", a.handleFXSync)
+
+	// Reports
+	protected.HandleFunc("/api/reports/spending", a.handleReportSpending)
+	protected.HandleFunc("/api/reports/balances", a.handleReportBalances)
 
 	mux.Handle("/api/", httpauth.Middleware(a.secret, a.issuer, protected))
 	return corsMiddleware(mux)

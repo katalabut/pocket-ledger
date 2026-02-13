@@ -8,6 +8,11 @@ type Config struct {
 	Database Database   `envPrefix:"DB_"`
 	Auth     Auth       `envPrefix:"AUTH_"`
 	SMTP     SMTP       `envPrefix:"SMTP_"`
+	FX       FX         `envPrefix:"FX_"`
+}
+
+type FX struct {
+	BaseCurrency string `env:"BASE_CURRENCY" envDefault:"EUR"`
 }
 
 type HTTP struct {

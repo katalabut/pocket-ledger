@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/katalabut/pocket-ledger/backend/internal/application/auth"
+	"github.com/katalabut/pocket-ledger/backend/internal/application/budget"
 	"github.com/katalabut/pocket-ledger/backend/internal/application/fx"
 	"github.com/katalabut/pocket-ledger/backend/internal/application/importer"
 	"github.com/katalabut/pocket-ledger/backend/internal/application/ledger"
@@ -24,6 +25,7 @@ type API struct {
 	importSvc  *importer.Service
 	fxSvc      *fx.Service
 	reportsSvc *reports.Service
+	budgetSvc  *budget.Service
 	secret     string
 	issuer     string
 	clock      func() time.Time
@@ -34,10 +36,10 @@ type Config struct {
 	Issuer    string
 }
 
-func New(authSvc *auth.Service, ledgerSvc *ledger.Service, importSvc *importer.Service, fxSvc *fx.Service, reportsSvc *reports.Service, cfg Config) *API {
+func New(authSvc *auth.Service, ledgerSvc *ledger.Service, importSvc *importer.Service, fxSvc *fx.Service, reportsSvc *reports.Service, budgetSvc *budget.Service, cfg Config) *API {
 	return &API{
 		authSvc: authSvc, ledgerSvc: ledgerSvc, importSvc: importSvc,
-		fxSvc: fxSvc, reportsSvc: reportsSvc,
+		fxSvc: fxSvc, reportsSvc: reportsSvc, budgetSvc: budgetSvc,
 		secret: cfg.JWTSecret, issuer: cfg.Issuer,
 		clock: func() time.Time { return time.Now().UTC() },
 	}
@@ -85,6 +87,9 @@ func (a *API) Handler() http.Handler {
 	// Reports
 	protected.HandleFunc("/api/reports/spending", a.handleReportSpending)
 	protected.HandleFunc("/api/reports/balances", a.handleReportBalances)
+
+	// Budgets
+	protected.HandleFunc("/api/budgets", a.handleBudgets)
 
 	mux.Handle("/api/", httpauth.Middleware(a.secret, a.issuer, protected))
 	return corsMiddleware(mux)

@@ -7,6 +7,7 @@ import (
 	fastapp "github.com/katalabut/fast-app"
 	"github.com/katalabut/fast-app/configloader"
 	"github.com/katalabut/pocket-ledger/backend/internal/application/auth"
+	"github.com/katalabut/pocket-ledger/backend/internal/application/budget"
 	"github.com/katalabut/pocket-ledger/backend/internal/application/fx"
 	"github.com/katalabut/pocket-ledger/backend/internal/application/importer"
 	"github.com/katalabut/pocket-ledger/backend/internal/application/ledger"
@@ -66,7 +67,10 @@ func New() (*fastapp.App, error) {
 	fxSvc := fx.NewService(fxRateRepo, ecbClient, cfg.FX.BaseCurrency, nil)
 	reportsSvc := reports.NewService(ledgerSvc, fxSvc)
 
-	api := httpapi.New(authSvc, ledgerSvc, importSvc, fxSvc, reportsSvc, httpapi.Config{JWTSecret: cfg.Auth.JWTSecret, Issuer: cfg.Auth.Issuer})
+	budgetRepo := sqliterepo.NewBudgetRepo(sqliteSvc.DB())
+	budgetSvc := budget.NewService(budgetRepo, ledgerSvc, fxSvc, nil)
+
+	api := httpapi.New(authSvc, ledgerSvc, importSvc, fxSvc, reportsSvc, budgetSvc, httpapi.Config{JWTSecret: cfg.Auth.JWTSecret, Issuer: cfg.Auth.Issuer})
 	httpSrv := httpserver.New(cfg.HTTP.Addr, api.Handler())
 
 	a := fastapp.New(cfg.App).

@@ -7,6 +7,7 @@ import (
 	fastapp "github.com/katalabut/fast-app"
 	"github.com/katalabut/fast-app/configloader"
 	"github.com/katalabut/pocket-ledger/backend/internal/application/auth"
+	"github.com/katalabut/pocket-ledger/backend/internal/application/ledger"
 	"github.com/katalabut/pocket-ledger/backend/internal/infrastructure/email"
 	"github.com/katalabut/pocket-ledger/backend/internal/infrastructure/sqliterepo"
 	"github.com/katalabut/pocket-ledger/backend/internal/interfaces/httpapi"
@@ -35,13 +36,24 @@ func New() (*fastapp.App, error) {
 	}
 	migSvc := migrator.New(sqliteSvc.DB(), "migrations/sqlite")
 
+	// Enable FK enforcement per connection
+	if _, err := sqliteSvc.DB().Exec("PRAGMA foreign_keys = ON"); err != nil {
+		return nil, fmt.Errorf("enable foreign keys: %w", err)
+	}
+
 	sender := email.NewSMTPSender(cfg.SMTP.Host, cfg.SMTP.Port, cfg.SMTP.Username, cfg.SMTP.Password, cfg.SMTP.From)
 	codesRepo := sqliterepo.NewAuthCodeRepo(sqliteSvc.DB())
 	usersRepo := sqliterepo.NewUserRepo(sqliteSvc.DB())
 	jwtIssuer := httpauth.NewIssuer(cfg.Auth.JWTSecret, cfg.Auth.Issuer)
 	authSvc := auth.NewService(codesRepo, usersRepo, sender, jwtIssuer, time.Duration(cfg.Auth.CodeTTLSeconds)*time.Second, cfg.Auth.CodeLengthDigits, nil)
 
-	api := httpapi.New(authSvc, httpapi.Config{JWTSecret: cfg.Auth.JWTSecret, Issuer: cfg.Auth.Issuer})
+	accountRepo := sqliterepo.NewAccountRepo(sqliteSvc.DB())
+	categoryRepo := sqliterepo.NewCategoryRepo(sqliteSvc.DB())
+	transactionRepo := sqliterepo.NewTransactionRepo(sqliteSvc.DB())
+	splitRepo := sqliterepo.NewSplitRepo(sqliteSvc.DB())
+	ledgerSvc := ledger.NewService(accountRepo, categoryRepo, transactionRepo, splitRepo, nil)
+
+	api := httpapi.New(authSvc, ledgerSvc, httpapi.Config{JWTSecret: cfg.Auth.JWTSecret, Issuer: cfg.Auth.Issuer})
 	httpSrv := httpserver.New(cfg.HTTP.Addr, api.Handler())
 
 	a := fastapp.New(cfg.App).

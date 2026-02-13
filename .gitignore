@@ -22,3 +22,6 @@ build/
 # Runtime
 *.log
 tmp/
+
+# Local agent scratch
+.agent-*

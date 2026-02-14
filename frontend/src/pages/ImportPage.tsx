@@ -1,173 +1,30 @@
 import { useState, useEffect, useCallback } from 'react'
-import {
-  ImportProfile, ImportSession, ImportRow,
-  listImportProfiles, createImportProfile,
-  uploadImport, previewImport, commitImport,
-  listAccounts, Account,
-} from '../api'
+import { ImportProfile, ImportSession, ImportRow, listImportProfiles, createImportProfile, uploadImport, previewImport, commitImport, listAccounts, Account } from '../api'
+import { Alert } from '../components/ui/alert'
+import { Button } from '../components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
+import { Input } from '../components/ui/input'
+import { Select } from '../components/ui/select'
+import { Table, TBody, TD, TH, THead, TR } from '../components/ui/table'
+import { Textarea } from '../components/ui/textarea'
 
 export default function ImportPage() {
-  const [profiles, setProfiles] = useState<ImportProfile[]>([])
-  const [accounts, setAccounts] = useState<Account[]>([])
-  const [showProfileForm, setShowProfileForm] = useState(false)
-  const [pName, setPName] = useState('')
-  const [pAccount, setPAccount] = useState('')
-  const [pSep, setPSep] = useState(',')
-  const [pDateFmt, setPDateFmt] = useState('2006-01-02')
-  const [pMapping, setPMapping] = useState('{"date":0,"amount":1,"currency":2,"description":3}')
-  const [pFlip, setPFlip] = useState(false)
-  const [pSkip, setPSkip] = useState(1)
-
-  const [selectedProfile, setSelectedProfile] = useState('')
-  const [file, setFile] = useState<File | null>(null)
-  const [session, setSession] = useState<ImportSession | null>(null)
-  const [rows, setRows] = useState<ImportRow[]>([])
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  const loadProfiles = useCallback(async () => {
-    try {
-      const [p, a] = await Promise.all([listImportProfiles(), listAccounts()])
-      setProfiles(p || [])
-      setAccounts(a || [])
-    } catch { /* profiles endpoint may not exist yet */ }
-  }, [])
-
+  const [profiles, setProfiles] = useState<ImportProfile[]>([]); const [accounts, setAccounts] = useState<Account[]>([])
+  const [showProfileForm, setShowProfileForm] = useState(false); const [pName, setPName] = useState(''); const [pAccount, setPAccount] = useState(''); const [pSep, setPSep] = useState(','); const [pDateFmt, setPDateFmt] = useState('2006-01-02'); const [pMapping, setPMapping] = useState('{"date":0,"amount":1,"currency":2,"description":3}'); const [pFlip, setPFlip] = useState(false); const [pSkip, setPSkip] = useState(1)
+  const [selectedProfile, setSelectedProfile] = useState(''); const [file, setFile] = useState<File | null>(null); const [session, setSession] = useState<ImportSession | null>(null); const [rows, setRows] = useState<ImportRow[]>([]); const [error, setError] = useState(''); const [loading, setLoading] = useState(false)
+  const loadProfiles = useCallback(async () => { try { const [p, a] = await Promise.all([listImportProfiles(), listAccounts()]); setProfiles(p || []); setAccounts(a || []) } catch {} }, [])
   useEffect(() => { loadProfiles() }, [loadProfiles])
-
-  const saveProfile = async () => {
-    try {
-      await createImportProfile({
-        name: pName, account_id: pAccount, separator: pSep,
-        date_format: pDateFmt, column_mapping: JSON.parse(pMapping),
-        amount_sign_flip: pFlip, skip_header_rows: pSkip,
-      })
-      setShowProfileForm(false)
-      loadProfiles()
-    } catch (e: unknown) { setError((e as Error).message) }
-  }
-
-  const doUpload = async () => {
-    if (!file || !selectedProfile) return
-    setLoading(true); setError('')
-    try {
-      const sess = await uploadImport(selectedProfile, file)
-      setSession(sess)
-      const preview = await previewImport(sess.ID)
-      setSession(preview.import)
-      setRows(preview.rows || [])
-    } catch (e: unknown) { setError((e as Error).message) }
-    finally { setLoading(false) }
-  }
-
-  const doCommit = async () => {
-    if (!session) return
-    setLoading(true); setError('')
-    try {
-      const result = await commitImport(session.ID)
-      setSession(result)
-      const preview = await previewImport(result.ID)
-      setRows(preview.rows || [])
-    } catch (e: unknown) { setError((e as Error).message) }
-    finally { setLoading(false) }
-  }
-
+  const saveProfile = async () => { try { await createImportProfile({ name: pName, account_id: pAccount, separator: pSep, date_format: pDateFmt, column_mapping: JSON.parse(pMapping), amount_sign_flip: pFlip, skip_header_rows: pSkip }); setShowProfileForm(false); loadProfiles() } catch (e: unknown) { setError((e as Error).message) } }
+  const doUpload = async () => { if (!file || !selectedProfile) return; setLoading(true); setError(''); try { const s = await uploadImport(selectedProfile, file); setSession(s); const p = await previewImport(s.ID); setSession(p.import); setRows(p.rows || []) } catch (e: unknown) { setError((e as Error).message) } finally { setLoading(false) } }
+  const doCommit = async () => { if (!session) return; setLoading(true); setError(''); try { const r = await commitImport(session.ID); setSession(r); const p = await previewImport(r.ID); setRows(p.rows || []) } catch (e: unknown) { setError((e as Error).message) } finally { setLoading(false) } }
   const profileAccount = (id: string) => accounts.find(a => a.ID === id)?.Name || id.slice(0, 8)
 
-  return (
-    <div>
-      <h2 className="text-xl font-bold mb-4">CSV Import</h2>
+  return <div className="space-y-4"><h2 className="text-2xl font-semibold">CSV Import</h2>{error && <Alert>{error}</Alert>}
+  <Card><CardHeader className="flex flex-row items-center justify-between"><CardTitle className="text-base">Step 1 — Profile</CardTitle><Button variant="outline" size="sm" onClick={() => setShowProfileForm(v => !v)}>{showProfileForm ? 'Close' : 'New profile'}</Button></CardHeader><CardContent className="space-y-3">{showProfileForm && <div className="grid gap-2 md:grid-cols-2"><Input value={pName} onChange={e => setPName(e.target.value)} placeholder="Profile name" /><Select value={pAccount} onChange={e => setPAccount(e.target.value)}><option value="">Account...</option>{accounts.map(a => <option key={a.ID} value={a.ID}>{a.Name}</option>)}</Select><Input value={pSep} onChange={e => setPSep(e.target.value)} /><Input value={pDateFmt} onChange={e => setPDateFmt(e.target.value)} /><Textarea className="md:col-span-2" value={pMapping} onChange={e => setPMapping(e.target.value)} /><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={pFlip} onChange={e => setPFlip(e.target.checked)} /> Flip amount sign</label><Input type="number" value={pSkip} onChange={e => setPSkip(parseInt(e.target.value) || 0)} /><div className="md:col-span-2"><Button onClick={saveProfile}>Save profile</Button></div></div>}
+  <Table><TBody>{profiles.map(p => <TR key={p.ID}><TD>{p.Name}</TD><TD>{profileAccount(p.AccountID)}</TD><TD className="text-slate-500">sep: {p.Separator}</TD></TR>)}</TBody></Table></CardContent></Card>
 
-      {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
+  <Card><CardHeader><CardTitle className="text-base">Step 2 — Upload & preview</CardTitle></CardHeader><CardContent className="flex flex-wrap items-center gap-2"><Select value={selectedProfile} onChange={e => setSelectedProfile(e.target.value)} className="w-56"><option value="">Select profile...</option>{profiles.map(p => <option key={p.ID} value={p.ID}>{p.Name}</option>)}</Select><Input type="file" accept=".csv" onChange={e => setFile(e.target.files?.[0] || null)} className="max-w-xs" /><Button onClick={doUpload} disabled={!file || !selectedProfile || loading}>{loading ? 'Processing...' : 'Upload & Preview'}</Button></CardContent></Card>
 
-      {/* Profiles */}
-      <div className="bg-white p-4 rounded shadow mb-4">
-        <div className="flex justify-between items-center mb-2">
-          <h3 className="font-semibold text-sm">Import Profiles</h3>
-          <button onClick={() => setShowProfileForm(true)} className="text-blue-600 text-xs">+ New Profile</button>
-        </div>
-        {showProfileForm && (
-          <div className="border p-3 rounded mb-3">
-            <div className="grid grid-cols-2 gap-2 mb-2 text-sm">
-              <input value={pName} onChange={e => setPName(e.target.value)} placeholder="Profile name" className="border rounded px-2 py-1" />
-              <select value={pAccount} onChange={e => setPAccount(e.target.value)} className="border rounded px-2 py-1">
-                <option value="">Account...</option>
-                {accounts.map(a => <option key={a.ID} value={a.ID}>{a.Name}</option>)}
-              </select>
-              <input value={pSep} onChange={e => setPSep(e.target.value)} placeholder="Separator" className="border rounded px-2 py-1" />
-              <input value={pDateFmt} onChange={e => setPDateFmt(e.target.value)} placeholder="Date format (Go)" className="border rounded px-2 py-1" />
-              <textarea value={pMapping} onChange={e => setPMapping(e.target.value)} placeholder="Column mapping JSON" className="border rounded px-2 py-1 col-span-2" rows={2} />
-              <label className="flex items-center gap-1 text-xs">
-                <input type="checkbox" checked={pFlip} onChange={e => setPFlip(e.target.checked)} /> Flip amount sign
-              </label>
-              <input type="number" value={pSkip} onChange={e => setPSkip(parseInt(e.target.value) || 0)} placeholder="Skip header rows" className="border rounded px-2 py-1" />
-            </div>
-            <div className="flex gap-2">
-              <button onClick={saveProfile} className="bg-green-600 text-white px-3 py-1 rounded text-sm">Save</button>
-              <button onClick={() => setShowProfileForm(false)} className="text-gray-600 text-sm">Cancel</button>
-            </div>
-          </div>
-        )}
-        <table className="w-full text-sm">
-          <tbody>
-            {profiles.map(p => (
-              <tr key={p.ID} className="border-b">
-                <td className="px-2 py-1">{p.Name}</td>
-                <td className="px-2 py-1">{profileAccount(p.AccountID)}</td>
-                <td className="px-2 py-1">sep: {p.Separator}</td>
-              </tr>
-            ))}
-            {profiles.length === 0 && <tr><td className="px-2 py-1 text-gray-400">No profiles yet</td></tr>}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Upload */}
-      <div className="bg-white p-4 rounded shadow mb-4">
-        <h3 className="font-semibold text-sm mb-2">Upload CSV</h3>
-        <div className="flex gap-2 items-center">
-          <select value={selectedProfile} onChange={e => setSelectedProfile(e.target.value)} className="border rounded px-2 py-1 text-sm">
-            <option value="">Select profile...</option>
-            {profiles.map(p => <option key={p.ID} value={p.ID}>{p.Name}</option>)}
-          </select>
-          <input type="file" accept=".csv" onChange={e => setFile(e.target.files?.[0] || null)} className="text-sm" />
-          <button onClick={doUpload} disabled={!file || !selectedProfile || loading} className="bg-blue-600 text-white px-4 py-1 rounded text-sm disabled:opacity-50">
-            {loading ? 'Processing...' : 'Upload & Preview'}
-          </button>
-        </div>
-      </div>
-
-      {/* Preview */}
-      {session && (
-        <div className="bg-white p-4 rounded shadow">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="font-semibold text-sm">Import: {session.Filename} ({session.Status})</h3>
-            {session.Status === 'previewed' && (
-              <button onClick={doCommit} disabled={loading} className="bg-green-600 text-white px-4 py-1 rounded text-sm disabled:opacity-50">
-                Commit Import
-              </button>
-            )}
-          </div>
-          <div className="text-sm text-gray-500 mb-2">
-            Total: {session.TotalRows} | Imported: {session.ImportedRows} | Skipped: {session.SkippedRows} | Errors: {session.ErrorRows}
-          </div>
-          <table className="w-full text-xs">
-            <thead><tr className="border-b text-left text-gray-500">
-              <th className="px-2 py-1">#</th><th className="px-2 py-1">Status</th><th className="px-2 py-1">Data</th><th className="px-2 py-1">Error</th>
-            </tr></thead>
-            <tbody>
-              {rows.map(r => (
-                <tr key={r.ID} className={`border-b ${r.Status === 'error' ? 'bg-red-50' : r.Status === 'skipped' ? 'bg-yellow-50' : ''}`}>
-                  <td className="px-2 py-1">{r.RowNumber}</td>
-                  <td className="px-2 py-1">{r.Status}</td>
-                  <td className="px-2 py-1 truncate max-w-xs">{r.RawData}</td>
-                  <td className="px-2 py-1 text-red-600">{r.ErrorMessage}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  )
+  {session && <Card><CardHeader className="flex flex-row items-center justify-between"><CardTitle className="text-base">Step 3 — Review & commit ({session.Status})</CardTitle>{session.Status === 'previewed' && <Button onClick={doCommit} disabled={loading}>{loading ? 'Committing...' : 'Commit import'}</Button>}</CardHeader><CardContent><p className="mb-2 text-sm text-slate-500">Total {session.TotalRows} · Imported {session.ImportedRows} · Skipped {session.SkippedRows} · Errors {session.ErrorRows}</p><div className="overflow-x-auto"><Table><THead><TR><TH>#</TH><TH>Status</TH><TH>Data</TH><TH>Error</TH></TR></THead><TBody>{rows.map(r => <TR key={r.ID} className={r.Status === 'error' ? 'bg-rose-50' : r.Status === 'skipped' ? 'bg-amber-50' : ''}><TD>{r.RowNumber}</TD><TD>{r.Status}</TD><TD className="max-w-sm truncate">{r.RawData}</TD><TD className="text-rose-600">{r.ErrorMessage}</TD></TR>)}</TBody></Table></div></CardContent></Card>}
+  </div>
 }

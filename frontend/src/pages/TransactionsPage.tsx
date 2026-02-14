@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Transaction, Account, Category, listTransactions, createTransaction, updateTransaction, deleteTransaction, listAccounts, listCategories, getSplits, replaceSplits } from '../api'
 import { Button } from '../components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card'
 import { Dialog } from '../components/ui/dialog'
 import { Input } from '../components/ui/input'
 import { Select } from '../components/ui/select'
@@ -34,35 +34,52 @@ export default function TransactionsPage() {
   const doCreate = async () => { await createTransaction({ account_id: newAccount, occurred_at: newDate + 'T00:00:00Z', amount_minor: parseInt(newAmount) || 0, currency: newCurrency, description: newDesc, category_id: newCategory || undefined }); setShowCreate(false); load() }
   const removeTx = async (id: string) => { if (confirm('Delete transaction?')) { await deleteTransaction(id); load() } }
 
-  return (<div className="space-y-4">
-    <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-2xl font-semibold">Transactions <span className="text-slate-500">{total}</span></h2><Button onClick={() => setShowCreate(true)}>Add transaction</Button></div>
-    <Card><CardHeader><CardTitle className="text-base">Filters</CardTitle></CardHeader><CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-      <Select value={fAccount} onChange={e => { setFAccount(e.target.value); setOffset(0) }}><option value="">All accounts</option>{accounts.map(a => <option key={a.ID} value={a.ID}>{a.Name}</option>)}</Select>
-      <Select value={fCategory} onChange={e => { setFCategory(e.target.value); setOffset(0) }}><option value="">All categories</option>{categories.map(c => <option key={c.ID} value={c.ID}>{c.Name}</option>)}</Select>
-      <Input type="date" value={fFrom} onChange={e => { setFFrom(e.target.value); setOffset(0) }} />
-      <Input type="date" value={fTo} onChange={e => { setFTo(e.target.value); setOffset(0) }} />
-      <Input value={fQuery} onChange={e => { setFQuery(e.target.value); setOffset(0) }} placeholder="Search description" />
-    </CardContent></Card>
+  const inflow = txs.filter(t => t.AmountMinor > 0).reduce((s, t) => s + t.AmountMinor, 0)
+  const outflow = txs.filter(t => t.AmountMinor < 0).reduce((s, t) => s + t.AmountMinor, 0)
 
-    <Card><CardContent className="p-0 overflow-x-auto"><Table><THead><TR><TH>Date</TH><TH>Description</TH><TH>Account</TH><TH>Category</TH><TH className="text-right">Amount</TH><TH>Actions</TH></TR></THead><TBody>
-      {txs.map(tx => <TR key={tx.ID}><TD>{tx.OccurredAt.slice(0,10)}</TD><TD>{tx.Description}</TD><TD>{accountName(tx.AccountID)}</TD><TD><Badge>{categoryName(tx.CategoryID)}</Badge></TD><TD className={`text-right font-medium ${tx.AmountMinor < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{fmt(tx.AmountMinor)} {tx.Currency}</TD><TD><div className="flex gap-1"><Button size="sm" variant="ghost" onClick={() => openEdit(tx)}>Edit</Button><Button size="sm" variant="ghost" onClick={() => openSplits(tx)}>Splits</Button><Button size="sm" variant="destructive" onClick={() => removeTx(tx.ID)}>Del</Button></div></TD></TR>)}
-      {txs.length === 0 && <TR><TD colSpan={6} className="py-6 text-center text-slate-400">No transactions</TD></TR>}
+  return (<div className="space-y-4">
+    <div className="grid gap-3 sm:grid-cols-3">
+      <Card><CardContent className="pt-4"><p className="text-xs text-[var(--muted-foreground)]">Transactions</p><p className="text-xl font-semibold">{total}</p></CardContent></Card>
+      <Card><CardContent className="pt-4"><p className="text-xs text-[var(--muted-foreground)]">Inflow</p><p className="text-xl font-semibold text-[var(--success)]">{fmt(inflow)}</p></CardContent></Card>
+      <Card><CardContent className="pt-4"><p className="text-xs text-[var(--muted-foreground)]">Outflow</p><p className="text-xl font-semibold text-[var(--danger)]">{fmt(outflow)}</p></CardContent></Card>
+    </div>
+
+    <Card>
+      <CardHeader className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <CardTitle className="text-base">Search & filter</CardTitle>
+          <CardDescription>Narrow down your ledger quickly</CardDescription>
+        </div>
+        <Button onClick={() => setShowCreate(true)}>Add transaction</Button>
+      </CardHeader>
+      <CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+        <Select value={fAccount} onChange={e => { setFAccount(e.target.value); setOffset(0) }}><option value="">All accounts</option>{accounts.map(a => <option key={a.ID} value={a.ID}>{a.Name}</option>)}</Select>
+        <Select value={fCategory} onChange={e => { setFCategory(e.target.value); setOffset(0) }}><option value="">All categories</option>{categories.map(c => <option key={c.ID} value={c.ID}>{c.Name}</option>)}</Select>
+        <Input type="date" value={fFrom} onChange={e => { setFFrom(e.target.value); setOffset(0) }} />
+        <Input type="date" value={fTo} onChange={e => { setFTo(e.target.value); setOffset(0) }} />
+        <Input value={fQuery} onChange={e => { setFQuery(e.target.value); setOffset(0) }} placeholder="Search description" />
+      </CardContent>
+    </Card>
+
+    <Card><CardContent className="overflow-x-auto p-0"><Table><THead><TR><TH>Date</TH><TH>Description</TH><TH>Account</TH><TH>Category</TH><TH className="text-right">Amount</TH><TH>Actions</TH></TR></THead><TBody>
+      {txs.map(tx => <TR key={tx.ID}><TD>{tx.OccurredAt.slice(0,10)}</TD><TD>{tx.Description}</TD><TD>{accountName(tx.AccountID)}</TD><TD><Badge>{categoryName(tx.CategoryID)}</Badge></TD><TD className={`text-right font-medium ${tx.AmountMinor < 0 ? 'text-[var(--danger)]' : 'text-[var(--success)]'}`}>{fmt(tx.AmountMinor)} {tx.Currency}</TD><TD><div className="flex gap-1"><Button size="sm" variant="ghost" onClick={() => openEdit(tx)}>Edit</Button><Button size="sm" variant="ghost" onClick={() => openSplits(tx)}>Splits</Button><Button size="sm" variant="destructive" onClick={() => removeTx(tx.ID)}>Del</Button></div></TD></TR>)}
+      {txs.length === 0 && <TR><TD colSpan={6} className="py-8 text-center text-[var(--muted-foreground)]">No transactions found for current filters</TD></TR>}
     </TBody></Table></CardContent></Card>
 
-    {total > limit && <div className="flex items-center justify-center gap-3"><Button variant="outline" onClick={() => setOffset(Math.max(0, offset-limit))} disabled={offset===0}>Previous</Button><span className="text-sm text-slate-500">{offset+1}-{Math.min(offset+limit,total)} of {total}</span><Button variant="outline" onClick={() => setOffset(offset+limit)} disabled={offset+limit>=total}>Next</Button></div>}
+    {total > limit && <div className="flex items-center justify-center gap-3"><Button variant="outline" onClick={() => setOffset(Math.max(0, offset-limit))} disabled={offset===0}>Previous</Button><span className="text-sm text-[var(--muted-foreground)]">{offset+1}-{Math.min(offset+limit,total)} of {total}</span><Button variant="outline" onClick={() => setOffset(offset+limit)} disabled={offset+limit>=total}>Next</Button></div>}
 
-    <Dialog open={showCreate} onClose={() => setShowCreate(false)} title="New Transaction" footer={<><Button onClick={doCreate}>Create</Button><Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button></>}>
+    <Dialog open={showCreate} onClose={() => setShowCreate(false)} title="New transaction" footer={<><Button onClick={doCreate}>Create</Button><Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button></>}>
       <div className="grid grid-cols-1 gap-2 md:grid-cols-2"><Select value={newAccount} onChange={e => setNewAccount(e.target.value)}><option value="">Account...</option>{accounts.map(a => <option key={a.ID} value={a.ID}>{a.Name} ({a.Currency})</option>)}</Select><Input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} /><Input value={newAmount} onChange={e => setNewAmount(e.target.value)} placeholder="Amount (minor units)" /><Input value={newCurrency} onChange={e => setNewCurrency(e.target.value)} placeholder="Currency" maxLength={3} /><Input className="md:col-span-2" value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Description" /><Select className="md:col-span-2" value={newCategory} onChange={e => setNewCategory(e.target.value)}><option value="">No category</option>{categories.map(c => <option key={c.ID} value={c.ID}>{c.Name}</option>)}</Select></div>
     </Dialog>
 
-    <Dialog open={!!editTx} onClose={() => setEditTx(null)} title="Edit Transaction" footer={<><Button onClick={saveEdit}>Save</Button><Button variant="outline" onClick={() => setEditTx(null)}>Cancel</Button></>}>
+    <Dialog open={!!editTx} onClose={() => setEditTx(null)} title="Edit transaction" footer={<><Button onClick={saveEdit}>Save</Button><Button variant="outline" onClick={() => setEditTx(null)}>Cancel</Button></>}>
       <div className="grid grid-cols-1 gap-2 md:grid-cols-2"><Select value={editAccount} onChange={e => setEditAccount(e.target.value)}>{accounts.map(a => <option key={a.ID} value={a.ID}>{a.Name}</option>)}</Select><Input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} /><Input value={editAmount} onChange={e => setEditAmount(e.target.value)} /><Input value={editDesc} onChange={e => setEditDesc(e.target.value)} /><Select className="md:col-span-2" value={editCat} onChange={e => setEditCat(e.target.value)}><option value="">No category</option>{categories.map(c => <option key={c.ID} value={c.ID}>{c.Name}</option>)}</Select></div>
     </Dialog>
 
     <Dialog open={!!splitTx} onClose={() => setSplitTx(null)} title={`Splits${splitTx ? `: ${splitTx.Description}` : ''}`} footer={<><Button onClick={saveSplits} disabled={splits.length > 0 && splitTx ? splitSum !== splitTx.AmountMinor : false}>Save splits</Button><Button variant="outline" onClick={() => setSplitTx(null)}>Cancel</Button></>} width="max-w-3xl">
-      {splitTx && <p className="mb-3 text-sm text-slate-500">Amount: {fmt(splitTx.AmountMinor)} {splitTx.Currency}</p>}
+      {splitTx && <p className="mb-3 text-sm text-[var(--muted-foreground)]">Amount: {fmt(splitTx.AmountMinor)} {splitTx.Currency}</p>}
       {splits.map((sp, i) => <div key={i} className="mb-2 flex gap-2"><Select value={sp.category_id} onChange={e => updateSplit(i, 'category_id', e.target.value)} className="flex-1"><option value="">Category...</option>{categories.map(c => <option key={c.ID} value={c.ID}>{c.Name}</option>)}</Select><Input value={sp.amount_minor} onChange={e => updateSplit(i, 'amount_minor', e.target.value)} className="w-40" /><Button variant="ghost" onClick={() => removeSplit(i)}>Remove</Button></div>)}
-      <div className="flex items-center justify-between"><Button variant="outline" onClick={addSplit}>Add split</Button>{splitTx && <span className={`text-sm ${splitSum === splitTx.AmountMinor ? 'text-emerald-600' : 'text-rose-600'}`}>Sum {fmt(splitSum)} / {fmt(splitTx.AmountMinor)}</span>}</div>
+      <div className="flex items-center justify-between"><Button variant="outline" onClick={addSplit}>Add split</Button>{splitTx && <span className={`text-sm ${splitSum === splitTx.AmountMinor ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>Sum {fmt(splitSum)} / {fmt(splitTx.AmountMinor)}</span>}</div>
     </Dialog>
   </div>)
 }

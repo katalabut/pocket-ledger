@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Category, listCategories, createCategory, updateCategory, deleteCategory } from '../api'
 import { Button } from '../components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card'
 import { Dialog } from '../components/ui/dialog'
 import { Input } from '../components/ui/input'
 import { Select } from '../components/ui/select'
@@ -19,8 +19,8 @@ export default function CategoriesPage() {
   const remove = async (id: string) => { if (confirm('Delete this category?')) { await deleteCategory(id); load() } }
   const parentName = (id: string | null) => !id ? '-' : categories.find(c => c.ID === id)?.Name || id
 
-  return <div className="space-y-4"><div className="flex items-center justify-between"><h2 className="text-2xl font-semibold">Categories</h2><Button onClick={() => setShowForm(true)}>Add category</Button></div>
-    <Card><CardHeader><CardTitle className="text-base">Category tree</CardTitle></CardHeader><CardContent className="p-0 overflow-x-auto"><Table><THead><TR><TH>Name</TH><TH>Parent</TH><TH>Actions</TH></TR></THead><TBody>{categories.map(c => <TR key={c.ID}><TD>{c.Name}</TD><TD>{parentName(c.ParentID)}</TD><TD><div className="flex gap-1"><Button size="sm" variant="ghost" onClick={() => edit(c)}>Edit</Button><Button size="sm" variant="destructive" onClick={() => remove(c.ID)}>Delete</Button></div></TD></TR>)}</TBody></Table></CardContent></Card>
+  return <div className="space-y-4"><div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="text-lg font-semibold">Categories</h2><p className="text-sm text-[var(--muted-foreground)]">Build a meaningful spending and income structure</p></div><Button onClick={() => setShowForm(true)}>Add category</Button></div>
+    <Card><CardHeader><CardTitle className="text-base">Category tree</CardTitle><CardDescription>Keep categories tidy for better reports and budgets</CardDescription></CardHeader><CardContent className="overflow-x-auto p-0"><Table><THead><TR><TH>Name</TH><TH>Parent</TH><TH>Actions</TH></TR></THead><TBody>{categories.map(c => <TR key={c.ID}><TD>{c.Name}</TD><TD>{parentName(c.ParentID)}</TD><TD><div className="flex gap-1"><Button size="sm" variant="ghost" onClick={() => edit(c)}>Edit</Button><Button size="sm" variant="destructive" onClick={() => remove(c.ID)}>Delete</Button></div></TD></TR>)}{categories.length===0 && <TR><TD colSpan={3} className="py-8 text-center text-[var(--muted-foreground)]">No categories created yet</TD></TR>}</TBody></Table></CardContent></Card>
     <Dialog open={showForm} onClose={reset} title={editId ? 'Edit category' : 'New category'} footer={<><Button onClick={save}>Save</Button><Button variant="outline" onClick={reset}>Cancel</Button></>}><div className="grid grid-cols-1 gap-2 md:grid-cols-2"><Input value={name} onChange={e => setName(e.target.value)} placeholder="Name" /><Select value={parentId} onChange={e => setParentId(e.target.value)}><option value="">No parent</option>{categories.filter(c => c.ID !== editId).map(c => <option key={c.ID} value={c.ID}>{c.Name}</option>)}</Select></div></Dialog>
   </div>
 }

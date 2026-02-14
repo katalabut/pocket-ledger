@@ -5,10 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from './card'
 export function Dialog({ open, onClose, title, children, footer, width = 'max-w-2xl' }: { open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode; width?: string }) {
   if (!open) return null
   return (
-    <div className="fixed inset-0 z-50 bg-black/35 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-black/30 p-4" onClick={onClose}>
       <div className={`mx-auto mt-10 ${width}`} onClick={e => e.stopPropagation()}>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between border-b border-slate-200">
+          <CardHeader className="flex flex-row items-center justify-between border-b border-[var(--border)]">
             <CardTitle>{title}</CardTitle>
             <Button variant="ghost" size="sm" onClick={onClose}>Close</Button>
           </CardHeader>

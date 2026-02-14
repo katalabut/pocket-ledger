@@ -23,11 +23,11 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
+    <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl">Pocket Ledger</CardTitle>
-          <CardDescription>Passwordless sign in via email code</CardDescription>
+          <CardTitle className="text-2xl">Welcome to Pocket Ledger</CardTitle>
+          <CardDescription>Secure sign in with a one-time email code</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {error && <Alert>{error}</Alert>}
@@ -38,7 +38,7 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
             </>
           ) : (
             <>
-              <p className="text-sm text-slate-500">Code sent to {email}</p>
+              <p className="text-sm text-[var(--muted-foreground)]">Code sent to {email}</p>
               <Input type="text" value={code} onChange={e => setCode(e.target.value)} placeholder="6-digit code" maxLength={6} />
               <Button onClick={confirmCode} disabled={loading || code.length < 6} className="w-full">{loading ? 'Verifying…' : 'Login'}</Button>
             </>

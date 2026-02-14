@@ -1,0 +1,35 @@
+# pocket-ledger configuration example
+# Copy to config.yaml and adjust for your environment.
+# Environment variables override values from this file.
+# Set CONFIG_FILE to load from a different path.
+
+app:
+  name: pocket-ledger
+
+http:
+  addr: ":8080"
+
+database:
+  path: "./dev.db"
+
+auth:
+  jwtsecret: "change-me-in-production"
+  codettlseconds: 600
+  codelengthdigits: 6
+  issuer: "pocket-ledger"
+
+email:
+  # "smtp" (default) or "log" — log prints login codes to stdout.
+  mode: "log"
+
+smtp:
+  # testmode: true also enables log mode (backward compat).
+  testmode: false
+  host: "smtp.example.com"
+  port: 587
+  username: ""
+  password: ""
+  from: "noreply@example.com"
+
+fx:
+  basecurrency: "EUR"

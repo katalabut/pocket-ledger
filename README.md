@@ -39,10 +39,24 @@ docker compose up --build -d
 # Backend
 cd backend
 go mod download
+
+# Option A: config file (recommended for local dev)
+cp config.yaml.example config.yaml
+# Edit config.yaml — set auth.jwtsecret at minimum.
+# email.mode=log prints login codes to stdout (no SMTP needed).
+go run ./cmd/api
+
+# Option B: environment variables only
 export AUTH_JWT_SECRET=dev-secret
-export SMTP_HOST=smtp.example.com SMTP_USERNAME=you SMTP_PASSWORD=pass SMTP_FROM=noreply@example.com
+export EMAIL_MODE=log            # print login codes to stdout
 export DB_PATH=./dev.db
 go run ./cmd/api
+
+# Option C: config file at custom path
+export CONFIG_FILE=/path/to/my-config.yaml
+go run ./cmd/api
+
+# Env vars always override config file values.
 
 # Frontend (separate terminal)
 cd frontend
@@ -55,17 +69,20 @@ npm run dev
 
 | Variable | Default | Description |
 |---|---|---|
+| `CONFIG_FILE` | `config.yaml` | Config file path (yaml/json/toml); env vars override file values |
 | `APP_NAME` | pocket-ledger | Application name |
 | `HTTP_ADDR` | :8080 | HTTP listen address |
 | `DB_PATH` | /data/pocket-ledger.db | SQLite database path |
 | `AUTH_JWT_SECRET` | **required** | JWT signing secret |
 | `AUTH_CODE_TTL_SECONDS` | 600 | Login code expiry |
 | `AUTH_ISSUER` | pocket-ledger | JWT issuer |
-| `SMTP_HOST` | **required** | SMTP server host |
+| `EMAIL_MODE` | smtp | Legacy switch: `smtp` = send via SMTP; `log` = print login codes to stdout |
+| `SMTP_TEST_MODE` | false | Preferred test switch: if true, log outgoing emails instead of sending |
+| `SMTP_HOST` | required unless `EMAIL_MODE=log` or `SMTP_TEST_MODE=true` | SMTP server host |
 | `SMTP_PORT` | 587 | SMTP server port |
-| `SMTP_USERNAME` | **required** | SMTP username |
-| `SMTP_PASSWORD` | **required** | SMTP password |
-| `SMTP_FROM` | **required** | From email address |
+| `SMTP_USERNAME` | required unless `EMAIL_MODE=log` or `SMTP_TEST_MODE=true` | SMTP username |
+| `SMTP_PASSWORD` | required unless `EMAIL_MODE=log` or `SMTP_TEST_MODE=true` | SMTP password |
+| `SMTP_FROM` | required unless `EMAIL_MODE=log` or `SMTP_TEST_MODE=true` | From email address |
 | `FX_BASE_CURRENCY` | EUR | Base currency for reports/budgets |
 
 ## API Endpoints
@@ -134,4 +151,23 @@ Sample CSVs for testing import are in `fixtures/`:
 
 ```bash
 cd backend && go test ./... -v
+```
+
+## Verify
+
+```bash
+# 1) Run tests
+cd backend && go test ./... -v
+
+# 2) Start API with log email mode (no SMTP needed)
+cd backend
+AUTH_JWT_SECRET=dev-secret EMAIL_MODE=log DB_PATH=./dev.db go run ./cmd/api
+
+# 3) In another terminal — health check (watch server logs for request line)
+curl -s http://localhost:8080/api/ping
+
+# 4) Trigger auth code request (watch logs for login code)
+curl -s -X POST http://localhost:8080/auth/request_code \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"user@example.com"}'
 ```

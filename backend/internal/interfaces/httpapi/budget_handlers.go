@@ -17,7 +17,7 @@ func (a *API) handleBudgets(w http.ResponseWriter, r *http.Request) {
 		}
 		report, err := a.budgetSvc.GetReport(r.Context(), month)
 		if err != nil {
-			writeErr(w, err)
+			a.writeErr(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, report)
@@ -29,7 +29,7 @@ func (a *API) handleBudgets(w http.ResponseWriter, r *http.Request) {
 		}
 		b, err := a.budgetSvc.Upsert(r.Context(), in)
 		if err != nil {
-			writeErr(w, err)
+			a.writeErr(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, b)

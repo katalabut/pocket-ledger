@@ -3,10 +3,10 @@ package httpapi
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
-
 	"time"
 
 	"github.com/katalabut/pocket-ledger/backend/internal/application/auth"
@@ -29,6 +29,7 @@ type API struct {
 	secret     string
 	issuer     string
 	clock      func() time.Time
+	logger     *log.Logger
 }
 
 type Config struct {
@@ -41,7 +42,8 @@ func New(authSvc *auth.Service, ledgerSvc *ledger.Service, importSvc *importer.S
 		authSvc: authSvc, ledgerSvc: ledgerSvc, importSvc: importSvc,
 		fxSvc: fxSvc, reportsSvc: reportsSvc, budgetSvc: budgetSvc,
 		secret: cfg.JWTSecret, issuer: cfg.Issuer,
-		clock: func() time.Time { return time.Now().UTC() },
+		clock:  func() time.Time { return time.Now().UTC() },
+		logger: log.Default(),
 	}
 }
 
@@ -92,7 +94,7 @@ func (a *API) Handler() http.Handler {
 	protected.HandleFunc("/api/budgets", a.handleBudgets)
 
 	mux.Handle("/api/", httpauth.Middleware(a.secret, a.issuer, protected))
-	return corsMiddleware(mux)
+	return a.requestLoggingMiddleware(corsMiddleware(mux))
 }
 
 // --- Auth handlers ---
@@ -152,7 +154,7 @@ func (a *API) handleAccounts(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		list, err := a.ledgerSvc.ListAccounts(r.Context())
 		if err != nil {
-			writeErr(w, err)
+			a.writeErr(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, list)
@@ -164,7 +166,7 @@ func (a *API) handleAccounts(w http.ResponseWriter, r *http.Request) {
 		}
 		acc, err := a.ledgerSvc.CreateAccount(r.Context(), in)
 		if err != nil {
-			writeErr(w, err)
+			a.writeErr(w, err)
 			return
 		}
 		writeJSON(w, http.StatusCreated, acc)
@@ -183,7 +185,7 @@ func (a *API) handleAccountByID(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		acc, err := a.ledgerSvc.GetAccount(r.Context(), id)
 		if err != nil {
-			writeErr(w, err)
+			a.writeErr(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, acc)
@@ -195,13 +197,13 @@ func (a *API) handleAccountByID(w http.ResponseWriter, r *http.Request) {
 		}
 		acc, err := a.ledgerSvc.UpdateAccount(r.Context(), id, in)
 		if err != nil {
-			writeErr(w, err)
+			a.writeErr(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, acc)
 	case http.MethodDelete:
 		if err := a.ledgerSvc.DeleteAccount(r.Context(), id); err != nil {
-			writeErr(w, err)
+			a.writeErr(w, err)
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
@@ -217,7 +219,7 @@ func (a *API) handleCategories(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		list, err := a.ledgerSvc.ListCategories(r.Context())
 		if err != nil {
-			writeErr(w, err)
+			a.writeErr(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, list)
@@ -229,7 +231,7 @@ func (a *API) handleCategories(w http.ResponseWriter, r *http.Request) {
 		}
 		cat, err := a.ledgerSvc.CreateCategory(r.Context(), in)
 		if err != nil {
-			writeErr(w, err)
+			a.writeErr(w, err)
 			return
 		}
 		writeJSON(w, http.StatusCreated, cat)
@@ -248,7 +250,7 @@ func (a *API) handleCategoryByID(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		cat, err := a.ledgerSvc.GetCategory(r.Context(), id)
 		if err != nil {
-			writeErr(w, err)
+			a.writeErr(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, cat)
@@ -260,13 +262,13 @@ func (a *API) handleCategoryByID(w http.ResponseWriter, r *http.Request) {
 		}
 		cat, err := a.ledgerSvc.UpdateCategory(r.Context(), id, in)
 		if err != nil {
-			writeErr(w, err)
+			a.writeErr(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, cat)
 	case http.MethodDelete:
 		if err := a.ledgerSvc.DeleteCategory(r.Context(), id); err != nil {
-			writeErr(w, err)
+			a.writeErr(w, err)
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
@@ -296,7 +298,7 @@ func (a *API) handleTransactions(w http.ResponseWriter, r *http.Request) {
 		}
 		items, total, err := a.ledgerSvc.ListTransactions(r.Context(), f)
 		if err != nil {
-			writeErr(w, err)
+			a.writeErr(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"items": items, "total": total})
@@ -308,7 +310,7 @@ func (a *API) handleTransactions(w http.ResponseWriter, r *http.Request) {
 		}
 		tx, err := a.ledgerSvc.CreateTransaction(r.Context(), in)
 		if err != nil {
-			writeErr(w, err)
+			a.writeErr(w, err)
 			return
 		}
 		writeJSON(w, http.StatusCreated, tx)
@@ -336,7 +338,7 @@ func (a *API) handleTransactionByID(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		tx, err := a.ledgerSvc.GetTransaction(r.Context(), id)
 		if err != nil {
-			writeErr(w, err)
+			a.writeErr(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, tx)
@@ -348,13 +350,13 @@ func (a *API) handleTransactionByID(w http.ResponseWriter, r *http.Request) {
 		}
 		tx, err := a.ledgerSvc.UpdateTransaction(r.Context(), id, in)
 		if err != nil {
-			writeErr(w, err)
+			a.writeErr(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, tx)
 	case http.MethodDelete:
 		if err := a.ledgerSvc.DeleteTransaction(r.Context(), id); err != nil {
-			writeErr(w, err)
+			a.writeErr(w, err)
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
@@ -370,7 +372,7 @@ func (a *API) handleSplits(w http.ResponseWriter, r *http.Request, txID string) 
 	case http.MethodGet:
 		splits, err := a.ledgerSvc.GetSplits(r.Context(), txID)
 		if err != nil {
-			writeErr(w, err)
+			a.writeErr(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, splits)
@@ -382,7 +384,7 @@ func (a *API) handleSplits(w http.ResponseWriter, r *http.Request, txID string) 
 		}
 		splits, err := a.ledgerSvc.ReplaceSplits(r.Context(), txID, inputs)
 		if err != nil {
-			writeErr(w, err)
+			a.writeErr(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, splits)
@@ -418,7 +420,7 @@ func writeBadRequest(w http.ResponseWriter, msg string) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"error": msg})
 }
 
-func writeErr(w http.ResponseWriter, err error) {
+func (a *API) writeErr(w http.ResponseWriter, err error) {
 	code := http.StatusInternalServerError
 	if errors.Is(err, domain.ErrNotFound) {
 		code = http.StatusNotFound
@@ -431,6 +433,11 @@ func writeErr(w http.ResponseWriter, err error) {
 	} else if errors.Is(err, domain.ErrForeignKey) {
 		code = http.StatusBadRequest
 	}
+
+	if a.logger != nil {
+		a.logger.Printf("http error: status=%d err=%v", code, err)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
@@ -447,4 +454,26 @@ func corsMiddleware(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (a *API) requestLoggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		startedAt := time.Now()
+		rw := &statusResponseWriter{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(rw, r)
+
+		if a.logger != nil {
+			a.logger.Printf("http request: method=%s path=%s status=%d duration=%s remote=%s", r.Method, r.URL.Path, rw.status, time.Since(startedAt).Round(time.Millisecond), r.RemoteAddr)
+		}
+	})
+}
+
+type statusResponseWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (w *statusResponseWriter) WriteHeader(statusCode int) {
+	w.status = statusCode
+	w.ResponseWriter.WriteHeader(statusCode)
 }

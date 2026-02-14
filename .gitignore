@@ -5,6 +5,9 @@
 .env
 .env.local
 
+# Local config (template is config.yaml.example)
+config.yaml
+
 # Go
 bin/
 *.test

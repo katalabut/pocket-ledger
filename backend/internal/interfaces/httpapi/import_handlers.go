@@ -13,7 +13,7 @@ func (a *API) handleImportProfiles(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		list, err := a.importSvc.ListProfiles(r.Context())
 		if err != nil {
-			writeErr(w, err)
+			a.writeErr(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, list)
@@ -25,7 +25,7 @@ func (a *API) handleImportProfiles(w http.ResponseWriter, r *http.Request) {
 		}
 		p, err := a.importSvc.CreateProfile(r.Context(), in)
 		if err != nil {
-			writeErr(w, err)
+			a.writeErr(w, err)
 			return
 		}
 		writeJSON(w, http.StatusCreated, p)
@@ -58,7 +58,7 @@ func (a *API) handleImportUpload(w http.ResponseWriter, r *http.Request) {
 
 	result, err := a.importSvc.Upload(r.Context(), profileID, header.Filename, file)
 	if err != nil {
-		writeErr(w, err)
+		a.writeErr(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, result.Import)
@@ -76,7 +76,7 @@ func (a *API) handleImportByID(w http.ResponseWriter, r *http.Request) {
 		}
 		preview, err := a.importSvc.Preview(r.Context(), importID)
 		if err != nil {
-			writeErr(w, err)
+			a.writeErr(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, preview)
@@ -91,7 +91,7 @@ func (a *API) handleImportByID(w http.ResponseWriter, r *http.Request) {
 		}
 		imp, err := a.importSvc.Commit(r.Context(), importID)
 		if err != nil {
-			writeErr(w, err)
+			a.writeErr(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, imp)

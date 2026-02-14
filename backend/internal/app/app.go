@@ -2,10 +2,10 @@ package app
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	fastapp "github.com/katalabut/fast-app"
-	"github.com/katalabut/fast-app/configloader"
 	"github.com/katalabut/pocket-ledger/backend/internal/application/auth"
 	"github.com/katalabut/pocket-ledger/backend/internal/application/budget"
 	"github.com/katalabut/pocket-ledger/backend/internal/application/fx"
@@ -24,15 +24,16 @@ import (
 )
 
 func New() (*fastapp.App, error) {
-	cfg, err := configloader.New[appconfig.Config]()
+	cfg, err := appconfig.Load()
 	if err != nil {
 		return nil, fmt.Errorf("load config: %w", err)
 	}
 	if cfg.Auth.JWTSecret == "" {
 		return nil, fmt.Errorf("AUTH_JWT_SECRET is required")
 	}
-	if cfg.SMTP.Host == "" || cfg.SMTP.Username == "" || cfg.SMTP.Password == "" || cfg.SMTP.From == "" {
-		return nil, fmt.Errorf("SMTP config is required (HOST/USERNAME/PASSWORD/FROM)")
+	emailTestMode := cfg.Email.Mode == "log" || cfg.SMTP.TestMode
+	if !emailTestMode && (cfg.SMTP.Host == "" || cfg.SMTP.Username == "" || cfg.SMTP.Password == "" || cfg.SMTP.From == "") {
+		return nil, fmt.Errorf("SMTP config is required (HOST/USERNAME/PASSWORD/FROM) unless EMAIL_MODE=log or SMTP_TEST_MODE=true")
 	}
 
 	sqliteSvc, err := sqlite.New(cfg.Database.Path)
@@ -46,7 +47,13 @@ func New() (*fastapp.App, error) {
 		return nil, fmt.Errorf("enable foreign keys: %w", err)
 	}
 
-	sender := email.NewSMTPSender(cfg.SMTP.Host, cfg.SMTP.Port, cfg.SMTP.Username, cfg.SMTP.Password, cfg.SMTP.From)
+	var sender auth.EmailSender
+	if emailTestMode {
+		log.Println("email test mode enabled (login codes will be logged and not sent)")
+		sender = email.NewLoggingSender(log.Default(), cfg.SMTP.From)
+	} else {
+		sender = email.NewSMTPSender(cfg.SMTP.Host, cfg.SMTP.Port, cfg.SMTP.Username, cfg.SMTP.Password, cfg.SMTP.From)
+	}
 	codesRepo := sqliterepo.NewAuthCodeRepo(sqliteSvc.DB())
 	usersRepo := sqliterepo.NewUserRepo(sqliteSvc.DB())
 	jwtIssuer := httpauth.NewIssuer(cfg.Auth.JWTSecret, cfg.Auth.Issuer)

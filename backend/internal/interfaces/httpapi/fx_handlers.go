@@ -15,7 +15,7 @@ func (a *API) handleFXRates(w http.ResponseWriter, r *http.Request) {
 	}
 	rates, err := a.fxSvc.GetRatesForDate(r.Context(), date)
 	if err != nil {
-		writeErr(w, err)
+		a.writeErr(w, err)
 		return
 	}
 	if rates == nil {
@@ -31,7 +31,7 @@ func (a *API) handleFXSync(w http.ResponseWriter, r *http.Request) {
 	}
 	count, err := a.fxSvc.SyncRates(r.Context())
 	if err != nil {
-		writeErr(w, err)
+		a.writeErr(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]int{"synced": count})
@@ -46,7 +46,7 @@ func (a *API) handleReportSpending(w http.ResponseWriter, r *http.Request) {
 	to := r.URL.Query().Get("to")
 	rows, err := a.reportsSvc.SpendingByCategory(r.Context(), from, to)
 	if err != nil {
-		writeErr(w, err)
+		a.writeErr(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, rows)
@@ -59,7 +59,7 @@ func (a *API) handleReportBalances(w http.ResponseWriter, r *http.Request) {
 	}
 	rows, err := a.reportsSvc.AccountBalances(r.Context())
 	if err != nil {
-		writeErr(w, err)
+		a.writeErr(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, rows)
